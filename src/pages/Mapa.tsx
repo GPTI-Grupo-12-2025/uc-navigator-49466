@@ -3,8 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockLugares } from "@/data/mockData";
-import { ArrowLeft, Navigation } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { mockLugares, mockEventos } from "@/data/mockData";
+import { ArrowLeft, Search, MapPin, Calendar, Star, Users } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -25,10 +29,67 @@ const Mapa = () => {
   const navigate = useNavigate();
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<{ [key: string]: L.Marker }>({});
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"rating" | "distancia">("rating");
+  const [activeTab, setActiveTab] = useState<"lugares" | "eventos">("lugares");
 
   // Campus UC San Joaquín as default center
   const defaultCenter: [number, number] = [-33.4985, -70.6138];
+
+  // Calculate distance between two coordinates
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Filter and sort lugares
+  const filteredLugares = mockLugares
+    .filter(lugar => 
+      lugar.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lugar.descripcion?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lugar.tipo.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortBy === "rating") {
+        return b.rating - a.rating;
+      } else if (sortBy === "distancia" && userLocation) {
+        const distA = calculateDistance(userLocation.lat, userLocation.lng, a.lat, a.lng);
+        const distB = calculateDistance(userLocation.lat, userLocation.lng, b.lat, b.lng);
+        return distA - distB;
+      }
+      return 0;
+    });
+
+  // Filter eventos
+  const filteredEventos = mockEventos
+    .filter(evento => 
+      evento.titulo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      evento.descripcion.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      evento.facultad.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Sort by date
+      return new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
+    });
+
+  // Center map on a location
+  const centerOnLocation = (lat: number, lng: number, lugarId?: string) => {
+    if (mapRef.current) {
+      mapRef.current.setView([lat, lng], 17);
+      if (lugarId && markersRef.current[lugarId]) {
+        markersRef.current[lugarId].openPopup();
+      }
+    }
+  };
 
   useEffect(() => {
     // Initialize map
@@ -45,6 +106,7 @@ const Mapa = () => {
     // Add markers for all lugares
     mockLugares.forEach((lugar) => {
       const marker = L.marker([lugar.lat, lugar.lng]).addTo(map);
+      markersRef.current[lugar.id] = marker;
       
       const mapsUrl = `https://www.google.com/maps?q=${lugar.lat},${lugar.lng}`;
       const popupContent = `
@@ -119,7 +181,7 @@ const Mapa = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="bg-gradient-primary text-primary-foreground p-4 shadow-md">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
           <Button
             size="sm"
             variant="secondary"
@@ -133,61 +195,162 @@ const Mapa = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto p-4 space-y-4">
-        {/* Interactive Leaflet Map */}
-        <Card>
-          <CardContent className="p-0">
-            <div 
-              ref={mapContainerRef} 
-              style={{ height: "600px", width: "100%", borderRadius: "var(--radius)" }}
-            />
-          </CardContent>
-        </Card>
+      <div className="max-w-7xl mx-auto p-4">
+        <div className="flex gap-4 relative">
+          {/* Sidebar Overlay */}
+          <Card className="w-96 flex-shrink-0 h-[calc(100vh-180px)] flex flex-col">
+            <CardContent className="p-4 flex flex-col gap-4 h-full">
+              {/* Tabs */}
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "lugares" | "eventos")} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="lugares">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Lugares
+                  </TabsTrigger>
+                  <TabsTrigger value="eventos">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Eventos
+                  </TabsTrigger>
+                </TabsList>
 
-        {/* Instructions */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3 text-sm text-muted-foreground">
-              <Navigation className="w-5 h-5 mt-0.5 text-primary" />
-              <div>
-                <p className="font-semibold text-foreground mb-1">Cómo usar el mapa:</p>
-                <ul className="space-y-1">
-                  <li>• Haz clic en los marcadores para ver información de cada lugar</li>
-                  <li>• Click derecho en cualquier punto para ver sus coordenadas</li>
-                  <li>• {userLocation ? "Tu ubicación está marcada en azul" : "Permite el acceso a ubicación para verte en el mapa"}</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* List of places */}
-        <div>
-          <h2 className="text-lg font-semibold mb-3">Todos los Lugares ({mockLugares.length})</h2>
-          <div className="grid gap-3 md:grid-cols-2">
-            {mockLugares.map((lugar) => (
-              <Card
-                key={lugar.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/lugar/${lugar.id}`)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold mb-1">{lugar.nombre}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {lugar.descripcion}
-                      </p>
-                      <div className="text-xs text-muted-foreground">
-                        {lugar.lat.toFixed(4)}, {lugar.lng.toFixed(4)}
-                      </div>
-                    </div>
-                    <Badge variant="secondary">{lugar.tipo}</Badge>
+                <div className="mt-4 space-y-3">
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder={activeTab === "lugares" ? "Buscar lugares..." : "Buscar eventos..."}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+
+                  {/* Sort - only for lugares */}
+                  {activeTab === "lugares" && (
+                    <Select value={sortBy} onValueChange={(v) => setSortBy(v as "rating" | "distancia")}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Ordenar por..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="rating">Por rating</SelectItem>
+                        <SelectItem value="distancia" disabled={!userLocation}>
+                          Por cercanía {!userLocation && "(activa ubicación)"}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {/* Content Lists */}
+                <TabsContent value="lugares" className="flex-1 mt-4">
+                  <ScrollArea className="h-[calc(100vh-420px)]">
+                    <div className="space-y-2 pr-4">
+                      {filteredLugares.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          No se encontraron lugares
+                        </p>
+                      ) : (
+                        filteredLugares.map((lugar) => {
+                          const distance = userLocation 
+                            ? calculateDistance(userLocation.lat, userLocation.lng, lugar.lat, lugar.lng)
+                            : null;
+                          
+                          return (
+                            <Card
+                              key={lugar.id}
+                              className="cursor-pointer hover:shadow-md transition-shadow"
+                              onClick={() => centerOnLocation(lugar.lat, lugar.lng, lugar.id)}
+                            >
+                              <CardContent className="p-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-sm truncate">{lugar.nombre}</h3>
+                                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                      {lugar.descripcion}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <div className="flex items-center gap-1">
+                                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                        <span className="text-xs font-medium">{lugar.rating}</span>
+                                      </div>
+                                      {distance && (
+                                        <span className="text-xs text-muted-foreground">
+                                          • {distance.toFixed(2)} km
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <Badge variant="secondary" className="text-xs flex-shrink-0">
+                                    {lugar.tipo}
+                                  </Badge>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })
+                      )}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="eventos" className="flex-1 mt-4">
+                  <ScrollArea className="h-[calc(100vh-420px)]">
+                    <div className="space-y-2 pr-4">
+                      {filteredEventos.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          No se encontraron eventos
+                        </p>
+                      ) : (
+                        filteredEventos.map((evento) => (
+                          <Card
+                            key={evento.id}
+                            className="cursor-pointer hover:shadow-md transition-shadow"
+                            onClick={() => navigate(`/eventos`)}
+                          >
+                            <CardContent className="p-3">
+                              <div className="space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <h3 className="font-semibold text-sm line-clamp-2 flex-1">
+                                    {evento.titulo}
+                                  </h3>
+                                  <Badge variant="outline" className="text-xs flex-shrink-0">
+                                    {evento.facultad}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground line-clamp-2">
+                                  {evento.descripcion}
+                                </p>
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {new Date(evento.fecha).toLocaleDateString('es-CL')}
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Users className="w-3 h-3" />
+                                    {evento.inscritos}
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          {/* Map */}
+          <Card className="flex-1">
+            <CardContent className="p-0">
+              <div 
+                ref={mapContainerRef} 
+                style={{ height: "calc(100vh - 180px)", width: "100%", borderRadius: "var(--radius)" }}
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
