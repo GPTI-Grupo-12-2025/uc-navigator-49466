@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { mockPuntos, mockPremios } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
@@ -6,28 +5,35 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Trophy, Gift, Star, Sparkles } from "lucide-react";
+import { ArrowLeft, Trophy, Gift, Star, Sparkles, Ticket } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePoints } from "@/contexts/PointsContext";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const UCPuntos = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [userPoints] = useState(850); // Puntos del usuario actual (Javier)
+  const { user } = useAuth();
+  const { points, cupones, redeemPrize } = usePoints();
   const sortedPuntos = [...mockPuntos].sort((a, b) => b.puntos - a.puntos);
 
   const handleCanjear = (premio: typeof mockPremios[0]) => {
-    if (userPoints < premio.costo) {
+    if (points < premio.costo) {
       toast({
         title: "Puntos insuficientes",
-        description: `Necesitas ${premio.costo - userPoints} puntos más`,
+        description: `Necesitas ${premio.costo - points} puntos más`,
         variant: "destructive",
       });
       return;
     }
 
-    toast({
-      title: "¡Premio canjeado!",
-      description: `Has recibido un cupón para: ${premio.nombre}`,
-    });
+    const success = redeemPrize(premio);
+    if (success) {
+      toast({
+        title: "¡Premio canjeado!",
+        description: `Has recibido un cupón para: ${premio.nombre}`,
+      });
+    }
   };
 
   return (
@@ -54,7 +60,7 @@ const UCPuntos = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm opacity-90">Tus puntos</p>
-                <p className="text-3xl font-bold">{userPoints}</p>
+                <p className="text-3xl font-bold">{points}</p>
               </div>
               <Trophy className="w-12 h-12 opacity-80" />
             </div>
@@ -64,8 +70,14 @@ const UCPuntos = () => {
 
       <div className="max-w-4xl mx-auto p-4">
         <Tabs defaultValue="premios" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="premios">Premios</TabsTrigger>
+            <TabsTrigger value="cupones">
+              Mis Cupones
+              {cupones.length > 0 && (
+                <Badge variant="secondary" className="ml-2">{cupones.length}</Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="ranking">Ranking</TabsTrigger>
           </TabsList>
 
@@ -80,7 +92,7 @@ const UCPuntos = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 {mockPremios.map((premio) => {
-                  const canAfford = userPoints >= premio.costo;
+                  const canAfford = points >= premio.costo;
                   return (
                     <div
                       key={premio.id}
@@ -132,6 +144,54 @@ const UCPuntos = () => {
             </Card>
           </TabsContent>
 
+          {/* Mis Cupones */}
+          <TabsContent value="cupones" className="space-y-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Ticket className="w-5 h-5" />
+                  Cupones Canjeados
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {cupones.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    No has canjeado ningún cupón todavía
+                  </p>
+                ) : (
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-3">
+                      {cupones.map((cupon) => (
+                        <div
+                          key={cupon.id}
+                          className="border border-accent/30 bg-accent/5 rounded-lg p-4"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-foreground">
+                                {cupon.premio.nombre}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                {cupon.premio.descripcion}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="ml-2">
+                              <Ticket className="w-3 h-3 mr-1" />
+                              Cupón
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Canjeado: {new Date(cupon.fechaCanje).toLocaleDateString('es-ES')}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Ranking */}
           <TabsContent value="ranking" className="space-y-3">
             <Card>
@@ -142,8 +202,8 @@ const UCPuntos = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {sortedPuntos.map((user, index) => {
-                  const isCurrentUser = user.userId === "1"; // Javier
+                {sortedPuntos.map((userRank, index) => {
+                  const isCurrentUser = user?.nombre === userRank.nombre;
                   const getRankIcon = () => {
                     if (index === 0) return "🥇";
                     if (index === 1) return "🥈";
@@ -153,7 +213,7 @@ const UCPuntos = () => {
 
                   return (
                     <div
-                      key={user.userId}
+                      key={userRank.userId}
                       className={`flex items-center justify-between p-3 rounded-lg ${
                         isCurrentUser
                           ? "bg-accent/10 border-2 border-accent"
@@ -166,7 +226,7 @@ const UCPuntos = () => {
                         </span>
                         <div>
                           <p className="font-semibold text-foreground">
-                            {user.nombre}
+                            {userRank.nombre}
                             {isCurrentUser && (
                               <Badge variant="outline" className="ml-2 text-xs">
                                 Tú
@@ -177,7 +237,7 @@ const UCPuntos = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-lg text-accent">
-                          {user.puntos}
+                          {isCurrentUser ? points : userRank.puntos}
                         </p>
                         <p className="text-xs text-muted-foreground">puntos</p>
                       </div>

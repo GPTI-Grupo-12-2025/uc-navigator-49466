@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { usePoints } from "@/contexts/PointsContext";
 import {
   ArrowLeft,
   Star,
@@ -19,6 +20,7 @@ const LugarDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { addPoints } = usePoints();
   const lugar = mockLugares.find((l) => l.id === id);
   const [newReview, setNewReview] = useState("");
   const [rating, setRating] = useState(5);
@@ -41,6 +43,7 @@ const LugarDetail = () => {
       return;
     }
 
+    addPoints(50, "Reseña enviada");
     toast({
       title: "¡Reseña enviada!",
       description: "Gracias por tu opinión. +50 UCPuntos ganados! 🎉",
@@ -49,6 +52,7 @@ const LugarDetail = () => {
   };
 
   const handleCreateAlert = (tipo: "lleno" | "mantenimiento" | "cerrado") => {
+    addPoints(30, "Alerta reportada");
     toast({
       title: "Alerta creada",
       description: `Se ha reportado: ${tipo}. Expira en 6 horas. +30 UCPuntos ganados!`,

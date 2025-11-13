@@ -53,6 +53,14 @@ const Mapa = () => {
     return R * c;
   };
 
+  // Filter eco lugares
+  const filteredEcoLugares = mockLugaresEco
+    .filter(lugar => 
+      lugar.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lugar.descripcion?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lugar.tipo.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
   // Filter and sort lugares
   const filteredLugares = mockLugares
     .filter(lugar => 
@@ -270,49 +278,50 @@ const Mapa = () => {
           {/* Sidebar Overlay */}
           <Card className="w-96 flex-shrink-0 h-[calc(100vh-180px)] flex flex-col">
             <CardContent className="p-4 flex flex-col gap-4 h-full">
-              {/* Tabs */}
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "lugares" | "eventos")} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="lugares">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    Lugares
-                  </TabsTrigger>
-                  <TabsTrigger value="eventos">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Eventos
-                  </TabsTrigger>
-                </TabsList>
+              {/* Tabs - hide when in eco mode */}
+              {!ecoMode && (
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "lugares" | "eventos")} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="lugares">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      Lugares
+                    </TabsTrigger>
+                    <TabsTrigger value="eventos">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Eventos
+                    </TabsTrigger>
+                  </TabsList>
 
-                <div className="mt-4 space-y-3">
-                  {/* Search */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder={activeTab === "lugares" ? "Buscar lugares..." : "Buscar eventos..."}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
+                  <div className="mt-4 space-y-3">
+                    {/* Search */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder={activeTab === "lugares" ? "Buscar lugares..." : "Buscar eventos..."}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+
+                    {/* Sort - only for lugares */}
+                    {activeTab === "lugares" && (
+                      <Select value={sortBy} onValueChange={(v) => setSortBy(v as "rating" | "distancia")}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Ordenar por..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="rating">Por rating</SelectItem>
+                          <SelectItem value="distancia" disabled={!userLocation}>
+                            Por cercanía {!userLocation && "(activa ubicación)"}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
 
-                  {/* Sort - only for lugares */}
-                  {activeTab === "lugares" && (
-                    <Select value={sortBy} onValueChange={(v) => setSortBy(v as "rating" | "distancia")}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Ordenar por..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="rating">Por rating</SelectItem>
-                        <SelectItem value="distancia" disabled={!userLocation}>
-                          Por cercanía {!userLocation && "(activa ubicación)"}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                {/* Content Lists */}
-                <TabsContent value="lugares" className="flex-1 mt-4">
+                  {/* Content Lists */}
+                  <TabsContent value="lugares" className="flex-1 mt-4">
                   <ScrollArea className="h-[calc(100vh-420px)]">
                     <div className="space-y-2 pr-4">
                       {filteredLugares.length === 0 ? (
@@ -409,6 +418,96 @@ const Mapa = () => {
                   </ScrollArea>
                 </TabsContent>
               </Tabs>
+              )}
+
+              {/* EcoCampus Mode - Show only eco lugares */}
+              {ecoMode && (
+                <>
+                  <div className="space-y-3">
+                    <h2 className="font-semibold text-foreground flex items-center gap-2">
+                      <Leaf className="w-5 h-5 text-green-600" />
+                      Puntos EcoCampus
+                    </h2>
+                    {/* Search */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar puntos eco..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  <ScrollArea className="flex-1">
+                    <div className="space-y-2 pr-4">
+                      {filteredEcoLugares.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          No se encontraron puntos eco
+                        </p>
+                      ) : (
+                        filteredEcoLugares.map((lugar) => {
+                          const distance = userLocation 
+                            ? calculateDistance(userLocation.lat, userLocation.lng, lugar.lat, lugar.lng)
+                            : null;
+
+                          const getTipoLabel = (tipo: string) => {
+                            switch(tipo) {
+                              case "reciclaje": return "Reciclaje";
+                              case "agua": return "Agua";
+                              case "zona-verde": return "Zona Verde";
+                              default: return tipo;
+                            }
+                          };
+
+                          const getTipoColor = (tipo: string) => {
+                            switch(tipo) {
+                              case "reciclaje": return "bg-green-100 text-green-800 border-green-300";
+                              case "agua": return "bg-blue-100 text-blue-800 border-blue-300";
+                              case "zona-verde": return "bg-emerald-100 text-emerald-800 border-emerald-300";
+                              default: return "";
+                            }
+                          };
+
+                          return (
+                            <Card
+                              key={lugar.id}
+                              className="cursor-pointer hover:shadow-md transition-shadow border-green-200"
+                              onClick={() => centerOnLocation(lugar.lat, lugar.lng, lugar.id)}
+                            >
+                              <CardContent className="p-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-sm truncate">{lugar.nombre}</h3>
+                                    <Badge className={`mt-1 text-xs ${getTipoColor(lugar.tipo)}`}>
+                                      <Leaf className="w-3 h-3 mr-1" />
+                                      {getTipoLabel(lugar.tipo)}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                
+                                {lugar.descripcion && (
+                                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                                    {lugar.descripcion}
+                                  </p>
+                                )}
+
+                                {distance && (
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
+                                    <MapPin className="w-3 h-3" />
+                                    {distance.toFixed(2)} km
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          );
+                        })
+                      )}
+                    </div>
+                  </ScrollArea>
+                </>
+              )}
             </CardContent>
           </Card>
 
