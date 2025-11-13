@@ -46,3 +46,26 @@ export type Usuario = {
   nombre: string;
   isAdmin: boolean;
 };
+
+export type UCPuntos = {
+  userId: string;
+  nombre: string;
+  puntos: number;
+};
+
+export type Premio = {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  costo: number;
+  imagen?: string;
+};
+
+export type LugarEco = {
+  id: string;
+  nombre: string;
+  tipo: "reciclaje" | "agua" | "zona-verde";
+  lat: number;
+  lng: number;
+  descripcion?: string;
+};

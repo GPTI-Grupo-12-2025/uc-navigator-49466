@@ -11,6 +11,7 @@ import Eventos from "./pages/Eventos";
 import Chatbot from "./pages/Chatbot";
 import Admin from "./pages/Admin";
 import Mapa from "./pages/Mapa";
+import UCPuntos from "./pages/UCPuntos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Mapa />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ucpuntos"
+              element={
+                <ProtectedRoute>
+                  <UCPuntos />
                 </ProtectedRoute>
               }
             />

@@ -1,4 +1,4 @@
-import { Lugar, Evento } from "@/types";
+import { Lugar, Evento, UCPuntos, Premio, LugarEco } from "@/types";
 
 export const mockLugares: Lugar[] = [
   {
@@ -169,5 +169,91 @@ export const mockEventos: Evento[] = [
     hora: "11:00",
     descripcion: "Exposición de obras de estudiantes de arte",
     inscritos: 312,
+  },
+];
+
+export const mockPuntos: UCPuntos[] = [
+  { userId: "1", nombre: "Javier", puntos: 850 },
+  { userId: "2", nombre: "Javiera", puntos: 720 },
+  { userId: "3", nombre: "Benjamín", puntos: 650 },
+  { userId: "4", nombre: "Sebastián", puntos: 580 },
+  { userId: "5", nombre: "Lucas", puntos: 420 },
+];
+
+export const mockPremios: Premio[] = [
+  {
+    id: "p1",
+    nombre: "Ensalada",
+    descripcion: "Ensalada fresca del casino central",
+    costo: 150,
+  },
+  {
+    id: "p2",
+    nombre: "Empanada",
+    descripcion: "Empanada de pino o queso",
+    costo: 200,
+  },
+  {
+    id: "p3",
+    nombre: "Café Starbucks",
+    descripcion: "Café de tu elección en Starbucks UC",
+    costo: 300,
+  },
+  {
+    id: "p4",
+    nombre: "Postre Castaño",
+    descripcion: "Postre del local Castaño",
+    costo: 250,
+  },
+];
+
+export const mockLugaresEco: LugarEco[] = [
+  {
+    id: "eco1",
+    nombre: "Punto de Reciclaje Biblioteca",
+    tipo: "reciclaje",
+    lat: -33.4976,
+    lng: -70.6146,
+    descripcion: "Contenedores de papel, plástico y vidrio",
+  },
+  {
+    id: "eco2",
+    nombre: "Dispensador de Agua - Ingeniería",
+    tipo: "agua",
+    lat: -33.4991,
+    lng: -70.6151,
+    descripcion: "Dispensador de agua purificada",
+  },
+  {
+    id: "eco3",
+    nombre: "Jardín Nativo UC",
+    tipo: "zona-verde",
+    lat: -33.4968,
+    lng: -70.6128,
+    descripcion: "Zona verde con flora nativa chilena",
+  },
+  {
+    id: "eco4",
+    nombre: "Punto de Reciclaje Cafetería",
+    tipo: "reciclaje",
+    lat: -33.4984,
+    lng: -70.6137,
+    descripcion: "Punto de reciclaje de residuos orgánicos",
+  },
+  {
+    id: "eco5",
+    nombre: "Dispensador de Agua - Letras",
+    tipo: "agua",
+    lat: -33.4996,
+    lng: -70.6141,
+    descripcion: "Dispensador de agua purificada",
+  },
+  {
+    id: "eco6",
+    nombre: "Parque Solar UC",
+    tipo: "zona-verde",
+    lat: -33.4972,
+    lng: -70.6135,
+    descripcion: "Área verde con paneles solares",
   },
 ];

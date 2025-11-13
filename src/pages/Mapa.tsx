@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { mockLugares, mockEventos } from "@/data/mockData";
-import { ArrowLeft, Search, MapPin, Calendar, Star, Users } from "lucide-react";
+import { mockLugares, mockEventos, mockLugaresEco } from "@/data/mockData";
+import { ArrowLeft, Search, MapPin, Calendar, Star, Users, Leaf } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -30,10 +30,12 @@ const Mapa = () => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<{ [key: string]: L.Marker }>({});
+  const ecoMarkersRef = useRef<{ [key: string]: L.Marker }>({});
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"rating" | "distancia">("rating");
   const [activeTab, setActiveTab] = useState<"lugares" | "eventos">("lugares");
+  const [ecoMode, setEcoMode] = useState(false);
 
   // Campus UC San Joaquín as default center
   const defaultCenter: [number, number] = [-33.4985, -70.6138];
@@ -88,7 +90,33 @@ const Mapa = () => {
       if (lugarId && markersRef.current[lugarId]) {
         markersRef.current[lugarId].openPopup();
       }
+      if (lugarId && ecoMarkersRef.current[lugarId]) {
+        ecoMarkersRef.current[lugarId].openPopup();
+      }
     }
+  };
+
+  // Toggle eco mode
+  const toggleEcoMode = () => {
+    setEcoMode(!ecoMode);
+    
+    // Hide/show regular markers
+    Object.values(markersRef.current).forEach(marker => {
+      if (!ecoMode) {
+        mapRef.current?.removeLayer(marker);
+      } else {
+        marker.addTo(mapRef.current!);
+      }
+    });
+
+    // Show/hide eco markers
+    Object.values(ecoMarkersRef.current).forEach(marker => {
+      if (ecoMode) {
+        mapRef.current?.removeLayer(marker);
+      } else {
+        marker.addTo(mapRef.current!);
+      }
+    });
   };
 
   useEffect(() => {
@@ -116,6 +144,37 @@ const Mapa = () => {
           <span style="font-size: 12px;">${lugar.descripcion}</span><br/>
           <div style="margin-top: 8px; display: flex; gap: 4px;">
             <button onclick="window.location.href='/lugar/${lugar.id}'" style="padding: 4px 8px; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Ver detalles</button>
+            <button onclick="window.open('${mapsUrl}', '_blank')" style="padding: 4px 8px; background: #34a853; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Google Maps</button>
+          </div>
+        </div>
+      `;
+      
+      marker.bindPopup(popupContent);
+    });
+
+    // Add eco markers (hidden initially)
+    mockLugaresEco.forEach((lugar) => {
+      const iconColor = lugar.tipo === "reciclaje" ? "#10b981" : lugar.tipo === "agua" ? "#3b82f6" : "#22c55e";
+      const iconSymbol = lugar.tipo === "reciclaje" ? "♻️" : lugar.tipo === "agua" ? "💧" : "🌳";
+      
+      const ecoIcon = L.divIcon({
+        className: 'eco-marker',
+        html: `<div style="background: ${iconColor}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-size: 16px;">${iconSymbol}</div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+      });
+
+      const marker = L.marker([lugar.lat, lugar.lng], { icon: ecoIcon });
+      ecoMarkersRef.current[lugar.id] = marker;
+      
+      const mapsUrl = `https://www.google.com/maps?q=${lugar.lat},${lugar.lng}`;
+      const tipoLabel = lugar.tipo === "reciclaje" ? "Punto de Reciclaje" : lugar.tipo === "agua" ? "Dispensador de Agua" : "Zona Verde";
+      const popupContent = `
+        <div style="font-family: system-ui, sans-serif;">
+          <strong style="font-size: 14px;">${lugar.nombre}</strong><br/>
+          <span style="font-size: 12px; color: #666;">${tipoLabel}</span><br/>
+          <span style="font-size: 12px;">${lugar.descripcion}</span><br/>
+          <div style="margin-top: 8px;">
             <button onclick="window.open('${mapsUrl}', '_blank')" style="padding: 4px 8px; background: #34a853; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Google Maps</button>
           </div>
         </div>
@@ -181,17 +240,28 @@ const Mapa = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="bg-gradient-primary text-primary-foreground p-4 shadow-md">
-        <div className="max-w-7xl mx-auto flex items-center gap-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => navigate("/home")}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Volver
+            </Button>
+            <h1 className="text-xl font-bold">Mapa del Campus</h1>
+          </div>
           <Button
             size="sm"
-            variant="secondary"
-            onClick={() => navigate("/home")}
+            variant={ecoMode ? "default" : "secondary"}
+            onClick={toggleEcoMode}
             className="gap-2"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Volver
+            <Leaf className="w-4 h-4" />
+            {ecoMode ? "Vista Normal" : "EcoCampus"}
           </Button>
-          <h1 className="text-xl font-bold">Mapa del Campus</h1>
         </div>
       </div>
 

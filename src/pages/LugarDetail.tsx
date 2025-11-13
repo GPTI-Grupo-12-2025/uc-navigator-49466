@@ -43,7 +43,7 @@ const LugarDetail = () => {
 
     toast({
       title: "¡Reseña enviada!",
-      description: "Gracias por tu opinión",
+      description: "Gracias por tu opinión. +50 UCPuntos ganados! 🎉",
     });
     setNewReview("");
   };
@@ -51,7 +51,7 @@ const LugarDetail = () => {
   const handleCreateAlert = (tipo: "lleno" | "mantenimiento" | "cerrado") => {
     toast({
       title: "Alerta creada",
-      description: `Se ha reportado: ${tipo}. Expira en 6 horas.`,
+      description: `Se ha reportado: ${tipo}. Expira en 6 horas. +30 UCPuntos ganados!`,
     });
   };
 
