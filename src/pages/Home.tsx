@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { mockLugares } from "@/data/mockData";
 import { Lugar } from "@/types";
-import { Search, MapPin, Star, LogOut, Calendar, MessageCircle, Settings } from "lucide-react";
+import { Search, MapPin, Star, LogOut, Calendar, MessageCircle, Settings, Sparkles } from "lucide-react";
 
 const Home = () => {
   const { user, logout } = useAuth();
@@ -99,7 +99,7 @@ const Home = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Button
             variant="outline"
             className="h-20 flex-col gap-2"
@@ -118,11 +118,19 @@ const Home = () => {
           </Button>
           <Button
             variant="outline"
-            className="h-20 flex-col gap-2 col-span-2 sm:col-span-1"
+            className="h-20 flex-col gap-2"
             onClick={() => navigate("/mapa")}
           >
             <MapPin className="w-6 h-6" />
             <span className="text-sm">Ver Mapa</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="h-20 flex-col gap-2 col-span-2 sm:col-span-1"
+            onClick={() => navigate("/ucpuntos")}
+          >
+            <Sparkles className="w-6 h-6" />
+            <span className="text-sm">UCPuntos</span>
           </Button>
         </div>
 
