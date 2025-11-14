@@ -16,10 +16,12 @@ const UCPuntos = () => {
   const { user } = useAuth();
   const { points, cupones, redeemPrize } = usePoints();
   
-  // Update current user's points in the ranking
-  const updatedPuntos = mockPuntos.map(p => 
-    p.nombre === user?.nombre ? { ...p, puntos: points } : p
-  );
+  // Update or add current user to the ranking
+  const userExists = mockPuntos.some(p => p.nombre === user?.nombre);
+  const updatedPuntos = userExists
+    ? mockPuntos.map(p => p.nombre === user?.nombre ? { ...p, puntos: points } : p)
+    : [...mockPuntos, { id: "current-user", userId: "current-user", nombre: user?.nombre || "", puntos: points }];
+  
   const sortedPuntos = [...updatedPuntos].sort((a, b) => b.puntos - a.puntos);
 
   const handleCanjear = (premio: typeof mockPremios[0]) => {

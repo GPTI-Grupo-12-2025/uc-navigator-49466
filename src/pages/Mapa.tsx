@@ -141,8 +141,13 @@ const Mapa = () => {
 
     // Add markers for all lugares
     mockLugares.forEach((lugar) => {
-      const marker = L.marker([lugar.lat, lugar.lng]).addTo(map);
-      markersRef.current[lugar.id] = marker;
+      if (!mapRef.current) return;
+      
+      const marker = L.marker([lugar.lat, lugar.lng]);
+      if (mapRef.current) {
+        marker.addTo(mapRef.current);
+        markersRef.current[lugar.id] = marker;
+      }
       
       const mapsUrl = `https://www.google.com/maps?q=${lugar.lat},${lugar.lng}`;
       const popupContent = `
@@ -162,6 +167,8 @@ const Mapa = () => {
 
     // Add eco markers (hidden initially)
     mockLugaresEco.forEach((lugar) => {
+      if (!mapRef.current) return;
+      
       const iconColor = lugar.tipo === "reciclaje" ? "#10b981" : lugar.tipo === "agua" ? "#3b82f6" : "#22c55e";
       const iconSymbol = lugar.tipo === "reciclaje" ? "♻️" : lugar.tipo === "agua" ? "💧" : "🌳";
       
@@ -207,11 +214,13 @@ const Mapa = () => {
             iconAnchor: [8, 8],
           });
 
-          const userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
-          userMarker.bindPopup(`<strong>Tu ubicación</strong><br/>Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`);
-          
-          // Center map on user location
-          map.setView([lat, lng], 15);
+          if (mapRef.current) {
+            const userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(mapRef.current);
+            userMarker.bindPopup(`<strong>Tu ubicación</strong><br/>Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`);
+            
+            // Center map on user location
+            mapRef.current.setView([lat, lng], 15);
+          }
         },
         (err) => {
           console.warn("Error getting location:", err);
