@@ -15,7 +15,12 @@ const UCPuntos = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { points, cupones, redeemPrize } = usePoints();
-  const sortedPuntos = [...mockPuntos].sort((a, b) => b.puntos - a.puntos);
+  
+  // Update current user's points in the ranking
+  const updatedPuntos = mockPuntos.map(p => 
+    p.nombre === user?.nombre ? { ...p, puntos: points } : p
+  );
+  const sortedPuntos = [...updatedPuntos].sort((a, b) => b.puntos - a.puntos);
 
   const handleCanjear = (premio: typeof mockPremios[0]) => {
     if (points < premio.costo) {
