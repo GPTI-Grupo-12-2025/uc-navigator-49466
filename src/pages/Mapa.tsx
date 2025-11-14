@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { mockLugares, mockEventos, mockLugaresEco } from "@/data/mockData";
-import { ArrowLeft, Search, MapPin, Calendar, Star, Users, Leaf } from "lucide-react";
+import { ArrowLeft, Search, MapPin, Calendar, Star, Users, Leaf, Clock, Phone, Globe } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -36,6 +37,8 @@ const Mapa = () => {
   const [sortBy, setSortBy] = useState<"rating" | "distancia">("rating");
   const [activeTab, setActiveTab] = useState<"lugares" | "eventos">("lugares");
   const [ecoMode, setEcoMode] = useState(false);
+  const [selectedLugar, setSelectedLugar] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Campus UC San Joaquín as default center
   const defaultCenter: [number, number] = [-33.4985, -70.6138];
@@ -156,13 +159,24 @@ const Mapa = () => {
           <span style="font-size: 12px; color: #666;">${lugar.tipo}</span><br/>
           <span style="font-size: 12px;">${lugar.descripcion}</span><br/>
           <div style="margin-top: 8px; display: flex; gap: 4px;">
-            <button onclick="window.location.href='/lugar/${lugar.id}'" style="padding: 4px 8px; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Ver detalles</button>
+            <button id="ver-detalles-${lugar.id}" style="padding: 4px 8px; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Ver detalles</button>
             <button onclick="window.open('${mapsUrl}', '_blank')" style="padding: 4px 8px; background: #34a853; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Google Maps</button>
           </div>
         </div>
       `;
       
       marker.bindPopup(popupContent);
+      
+      // Add click listener to "Ver detalles" button after popup opens
+      marker.on('popupopen', () => {
+        const btn = document.getElementById(`ver-detalles-${lugar.id}`);
+        if (btn) {
+          btn.onclick = () => {
+            setSelectedLugar(lugar);
+            setIsModalOpen(true);
+          };
+        }
+      });
     });
 
     // Add eco markers (hidden initially)
@@ -255,7 +269,84 @@ const Mapa = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <>
+      {/* Modal de detalles */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <MapPin className="w-6 h-6 text-primary" />
+              {selectedLugar?.nombre}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedLugar && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge>{selectedLugar.tipo}</Badge>
+                <div className="flex items-center gap-1">
+                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  <span className="font-semibold">{selectedLugar.rating}</span>
+                </div>
+              </div>
+              
+              <p className="text-muted-foreground">{selectedLugar.descripcion}</p>
+              
+              <div className="grid gap-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">Horario: Lun-Vie 8:00-20:00, Sáb 10:00-18:00</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">Contacto: +56 2 2354 4000</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">www.uc.cl</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    Coordenadas: {selectedLugar.lat.toFixed(6)}, {selectedLugar.lng.toFixed(6)}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t">
+                <h3 className="font-semibold mb-2">Servicios disponibles</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">WiFi gratis</Badge>
+                  <Badge variant="outline">Enchufes</Badge>
+                  <Badge variant="outline">Aire acondicionado</Badge>
+                  <Badge variant="outline">Acceso 24/7</Badge>
+                </div>
+              </div>
+              
+              <div className="flex gap-2 pt-2">
+                <Button 
+                  onClick={() => window.open(`https://www.google.com/maps?q=${selectedLugar.lat},${selectedLugar.lng}`, '_blank')}
+                  className="flex-1"
+                >
+                  Abrir en Google Maps
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1"
+                >
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <div className="min-h-screen bg-background pb-20">
       <div className="bg-gradient-primary text-primary-foreground p-4 shadow-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -532,6 +623,7 @@ const Mapa = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
