@@ -328,13 +328,19 @@ const Mapa = () => {
               
               <div className="flex gap-2 pt-2">
                 <Button 
-                  onClick={() => window.open(`https://www.google.com/maps?q=${selectedLugar.lat},${selectedLugar.lng}`, '_blank', 'noopener,noreferrer')}
+                  asChild
                   className="flex-1"
                 >
-                  Abrir en Google Maps
+                  <a 
+                    href={`https://www.google.com/maps?q=${selectedLugar.lat},${selectedLugar.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Abrir en Google Maps
+                  </a>
                 </Button>
                 <Button 
-                  variant="outline"
+                  variant="outline" 
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1"
                 >
