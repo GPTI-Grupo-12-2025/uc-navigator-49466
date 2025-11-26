@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +28,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 const Mapa = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<{ [key: string]: L.Marker }>({});
@@ -267,6 +268,17 @@ const Mapa = () => {
       }
     };
   }, []);
+
+  // Handle navigation state to focus on a specific location
+  useEffect(() => {
+    const state = location.state as { focusLocation?: { id: string; nombre: string; lat: number; lng: number } };
+    if (state?.focusLocation && mapRef.current) {
+      const { lat, lng, id } = state.focusLocation;
+      centerOnLocation(lat, lng, id);
+      // Clear the state to avoid re-focusing on navigation back
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   return (
     <>

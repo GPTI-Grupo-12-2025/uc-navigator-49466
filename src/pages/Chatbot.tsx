@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { mockLugares } from "@/data/mockData";
-import { ArrowLeft, Send, Bot, User } from "lucide-react";
+import { ArrowLeft, Send, Bot, User, MapPin } from "lucide-react";
 
 type Message = {
   id: string;
   text: string;
   sender: "user" | "bot";
   timestamp: Date;
+  lugares?: Array<{ id: string; nombre: string; lat: number; lng: number }>;
 };
 
 const Chatbot = () => {
@@ -25,39 +26,51 @@ const Chatbot = () => {
   ]);
   const [inputValue, setInputValue] = useState("");
 
-  const getBotResponse = (userMessage: string): string => {
+  const getBotResponse = (userMessage: string): { text: string; lugares: Array<{ id: string; nombre: string; lat: number; lng: number }> } => {
     const lowerMessage = userMessage.toLowerCase();
 
     if (lowerMessage.includes("junaeb") || lowerMessage.includes("comer")) {
       const lugaresJunaeb = mockLugares.filter((l) =>
         l.etiquetas.includes("acepta JUNAEB")
       );
-      return `Te recomiendo estos lugares que aceptan JUNAEB: ${lugaresJunaeb
-        .map((l) => l.nombre)
-        .join(", ")}. ¿Quieres saber más sobre alguno?`;
+      return {
+        text: `Te recomiendo estos lugares que aceptan JUNAEB: ${lugaresJunaeb
+          .map((l) => l.nombre)
+          .join(", ")}. Haz clic en cualquier lugar para verlo en el mapa.`,
+        lugares: lugaresJunaeb.map(l => ({ id: l.id, nombre: l.nombre, lat: l.lat, lng: l.lng }))
+      };
     }
 
     if (lowerMessage.includes("estudiar") || lowerMessage.includes("biblioteca")) {
       const lugaresEstudio = mockLugares.filter(
         (l) => l.tipo === "biblioteca" || l.tipo === "sala"
       );
-      return `Para estudiar te recomiendo: ${lugaresEstudio
-        .map((l) => l.nombre)
-        .join(", ")}. Todos tienen enchufes y wifi.`;
+      return {
+        text: `Para estudiar te recomiendo: ${lugaresEstudio
+          .map((l) => l.nombre)
+          .join(", ")}. Todos tienen enchufes y wifi. Haz clic en cualquier lugar para verlo en el mapa.`,
+        lugares: lugaresEstudio.map(l => ({ id: l.id, nombre: l.nombre, lat: l.lat, lng: l.lng }))
+      };
     }
 
     if (lowerMessage.includes("vegano") || lowerMessage.includes("vegetariano")) {
       const lugaresVeganos = mockLugares.filter((l) =>
         l.etiquetas.includes("opción vegana")
       );
-      return `Lugares con opciones veganas: ${lugaresVeganos
-        .map((l) => l.nombre)
-        .join(", ")}.`;
+      return {
+        text: `Lugares con opciones veganas: ${lugaresVeganos
+          .map((l) => l.nombre)
+          .join(", ")}. Haz clic en cualquier lugar para verlo en el mapa.`,
+        lugares: lugaresVeganos.map(l => ({ id: l.id, nombre: l.nombre, lat: l.lat, lng: l.lng }))
+      };
     }
 
     if (lowerMessage.includes("baño")) {
       const banos = mockLugares.filter((l) => l.tipo === "baño");
-      return `Los baños más cercanos son: ${banos.map((l) => l.nombre).join(", ")}.`;
+      return {
+        text: `Los baños más cercanos son: ${banos.map((l) => l.nombre).join(", ")}. Haz clic en cualquier baño para verlo en el mapa.`,
+        lugares: banos.map(l => ({ id: l.id, nombre: l.nombre, lat: l.lat, lng: l.lng }))
+      };
     }
 
     if (
@@ -65,10 +78,16 @@ const Chatbot = () => {
       lowerMessage.includes("hi") ||
       lowerMessage.includes("hello")
     ) {
-      return "¡Hola! ¿En qué puedo ayudarte hoy? Puedo ayudarte a encontrar lugares para comer, estudiar, baños, o información sobre eventos.";
+      return {
+        text: "¡Hola! ¿En qué puedo ayudarte hoy? Puedo ayudarte a encontrar lugares para comer, estudiar, baños, o información sobre eventos.",
+        lugares: []
+      };
     }
 
-    return "Puedo ayudarte con: lugares para comer con JUNAEB, espacios para estudiar, opciones veganas, baños accesibles, y más. ¿Qué necesitas?";
+    return {
+      text: "Puedo ayudarte con: lugares para comer con JUNAEB, espacios para estudiar, opciones veganas, baños accesibles, y más. ¿Qué necesitas?",
+      lugares: []
+    };
   };
 
   const handleSend = () => {
@@ -85,11 +104,13 @@ const Chatbot = () => {
 
     // Simulate bot response
     setTimeout(() => {
+      const response = getBotResponse(inputValue);
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: getBotResponse(inputValue),
+        text: response.text,
         sender: "bot",
         timestamp: new Date(),
+        lugares: response.lugares,
       };
       setMessages((prev) => [...prev, botMessage]);
     }, 500);
@@ -145,6 +166,22 @@ const Chatbot = () => {
                 }`}
               >
                 <p className="text-sm">{message.text}</p>
+                {message.lugares && message.lugares.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {message.lugares.map((lugar) => (
+                      <Button
+                        key={lugar.id}
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate("/mapa", { state: { focusLocation: lugar } })}
+                        className="text-xs"
+                      >
+                        <MapPin className="w-3 h-3 mr-1" />
+                        {lugar.nombre}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </Card>
             </div>
           ))}
